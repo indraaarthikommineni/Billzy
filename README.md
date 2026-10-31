@@ -62,10 +62,21 @@ npm install
 npm run seed
 ```
 
-### 3. Start the Server
+### 3. Start the Application (Unified Backend & Frontend)
 ```bash
+# Starts the server which serves both the REST API and the interactive React UI
 npm start
-# Server listens at http://localhost:5000
+# Open your browser at http://localhost:5000
+```
+
+For frontend development with Vite Hot Module Reloading (HMR):
+```bash
+# Terminal 1: Backend API
+npm run dev
+
+# Terminal 2: Vite React Frontend (proxies to http://localhost:5000)
+npm run dev:client
+# Open http://localhost:5173
 ```
 
 ### 4. Run Automated Tests & Performance Benchmark
