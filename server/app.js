@@ -50,6 +50,18 @@ function createApp(dbPath) {
   app.use('/api/dashboard', dashboardRoutes);
   app.use('/api/portal', portalRoutes);
 
+  // Serve static client build if present
+  const clientDistPath = require('path').join(__dirname, '..', 'client', 'dist');
+  if (require('fs').existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+    app.use((req, res, next) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(require('path').join(clientDistPath, 'index.html'));
+      }
+      next();
+    });
+  }
+
   // 404 handler for unmatched routes
   app.use((req, res) => {
     res.status(404).json({ error: `Endpoint not found: ${req.method} ${req.originalUrl}` });

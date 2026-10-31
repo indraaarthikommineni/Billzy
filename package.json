@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
+    "build": "npm --prefix client run build",
+    "dev:client": "npm --prefix client run dev",
     "seed": "node server/db/seed.js",
     "test": "node --test server/tests/*.test.js",
     "test:benchmark": "node server/tests/benchmark.test.js"
