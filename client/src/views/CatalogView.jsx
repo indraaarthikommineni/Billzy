@@ -27,6 +27,7 @@ export default function CatalogView() {
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   // Forms
   const [productForm, setProductForm] = useState({
@@ -55,6 +56,14 @@ export default function CatalogView() {
     allow_early_close: true,
     allow_pause: true,
     allow_renewal: true
+  });
+
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    plan_id: '',
+    validity_days: 30,
+    notes: '',
+    lines: [{ product_id: '', variant_id: '', quantity: 1 }]
   });
 
   const fetchData = async () => {
@@ -141,6 +150,34 @@ export default function CatalogView() {
       await fetchData();
     } catch (err) {
       alert(`Create plan error: ${err.message}`);
+    }
+  };
+
+  const handleCreateTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      await api.createTemplate({
+        name: templateForm.name,
+        plan_id: Number(templateForm.plan_id),
+        validity_days: Number(templateForm.validity_days) || 30,
+        notes: templateForm.notes,
+        lines: templateForm.lines.map(l => ({
+          product_id: Number(l.product_id),
+          variant_id: l.variant_id ? Number(l.variant_id) : undefined,
+          quantity: Number(l.quantity) || 1
+        }))
+      });
+      setShowTemplateModal(false);
+      setTemplateForm({
+        name: '',
+        plan_id: '',
+        validity_days: 30,
+        notes: '',
+        lines: [{ product_id: '', variant_id: '', quantity: 1 }]
+      });
+      await fetchData();
+    } catch (err) {
+      alert(`Create template error: ${err.message}`);
     }
   };
 
@@ -362,6 +399,13 @@ export default function CatalogView() {
             <span className="text-xs font-semibold text-slate-500">
               Pre-configured offer packages that sales reps can turn into subscriptions in seconds
             </span>
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-[#714B67] hover:bg-[#5e3e56] text-white rounded-lg text-xs font-semibold shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Create Quotation Template
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -689,6 +733,136 @@ export default function CatalogView() {
                   className="px-5 py-2 bg-[#714B67] hover:bg-[#5e3e56] text-white rounded-lg font-bold shadow-sm"
                 >
                   Create Plan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Quotation Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Create Quotation Template</h3>
+              <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+            </div>
+
+            <form onSubmit={handleCreateTemplate} className="space-y-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Template Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Enterprise Cloud Package"
+                  value={templateForm.name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg p-2 text-slate-800"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Base Plan *</label>
+                  <select
+                    required
+                    value={templateForm.plan_id}
+                    onChange={(e) => setTemplateForm({ ...templateForm, plan_id: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg p-2 bg-white text-slate-800"
+                  >
+                    <option value="">-- Select Plan --</option>
+                    {plans.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.billing_frequency})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Validity (Days) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={templateForm.validity_days}
+                    onChange={(e) => setTemplateForm({ ...templateForm, validity_days: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg p-2 text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Notes / Terms</label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. Standard terms and conditions apply"
+                  value={templateForm.notes}
+                  onChange={(e) => setTemplateForm({ ...templateForm, notes: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg p-2 text-slate-800"
+                ></textarea>
+              </div>
+
+              {/* Product Lines */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">Bundled Lines</label>
+                {templateForm.lines.map((l, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2">
+                    <select
+                      required
+                      value={l.product_id}
+                      onChange={(e) => {
+                        const updated = [...templateForm.lines];
+                        updated[idx].product_id = e.target.value;
+                        setTemplateForm({ ...templateForm, lines: updated });
+                      }}
+                      className="flex-1 border border-slate-200 rounded p-1.5 bg-white text-slate-800"
+                    >
+                      <option value="">-- Choose Product --</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Qty"
+                      value={l.quantity}
+                      onChange={(e) => {
+                        const updated = [...templateForm.lines];
+                        updated[idx].quantity = e.target.value;
+                        setTemplateForm({ ...templateForm, lines: updated });
+                      }}
+                      className="w-16 border border-slate-200 rounded p-1.5 text-center text-slate-800"
+                    />
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setTemplateForm(prev => ({
+                    ...prev,
+                    lines: [...prev.lines, { product_id: '', variant_id: '', quantity: 1 }]
+                  }))}
+                  className="text-xs text-[#714B67] font-semibold hover:underline"
+                >
+                  + Add Line Item
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateModal(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#714B67] hover:bg-[#5e3e56] text-white rounded-lg font-bold shadow-sm"
+                >
+                  Save Template
                 </button>
               </div>
             </form>
